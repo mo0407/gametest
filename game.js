@@ -50,8 +50,8 @@ const winChime = () => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f
 /* ---------------- 迷宫生成：四种地图版本 ---------------- */
 const k = (x, y, d) => x + ',' + y + ',' + d;
 
-/* 从起点 BFS：在路径距离最远的格子（>=80% 最大距离）里，
- * 优先取空间位置最靠右下的作为出口，兼顾探索长度与空间距离 */
+/* 从起点 BFS：在路径距离最远的格子（>=80% 最大距离）里随机选取出口，
+ * 保证每局出口位置不固定，同时离起点足够远、不至于贴着出生点 */
 function finalize(walls) {
   const dist = Array.from({ length: ROWS }, () => Array(COLS).fill(-1));
   dist[0][0] = 0;
@@ -69,14 +69,15 @@ function finalize(walls) {
     }
   }
   const threshold = maxDist * 0.8;
-  let exit = { x: COLS - 1, y: ROWS - 1 }, bestScore = -1;
+  const candidates = [];
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
-      if (dist[y][x] < threshold) continue;
-      const score = x + y;
-      if (score > bestScore) { bestScore = score; exit = { x, y }; }
+      if (dist[y][x] >= threshold && x + y >= 3) candidates.push({ x, y });
     }
   }
+  const exit = candidates.length
+    ? candidates[(Math.random() * candidates.length) | 0]
+    : { x: COLS - 1, y: ROWS - 1 };
   return { walls, exit };
 }
 
