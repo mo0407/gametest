@@ -11,7 +11,7 @@ const ctx = canvas.getContext('2d');
 
 const COLS = 18, ROWS = 18;          // 迷宫尺寸（格）
 const MOVE_MS = 150;                 // 每步移动时长
-const SIGHT = 3;                     // 探索标记半径（格）
+const SIGHT = 2;                     // 探索标记半径（格）：5x5，保留探索感
 
 const DIRS = [[0, -1, 0, 2], [1, 0, 1, 3], [0, 1, 2, 0], [-1, 0, 3, 1]]; // dx,dy,墙方向,反方向
 
@@ -50,7 +50,7 @@ const winChime = () => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f
 /* ---------------- 迷宫生成：四种地图版本 ---------------- */
 const k = (x, y, d) => x + ',' + y + ',' + d;
 
-/* 从起点 BFS：在路径距离最远的格子（>=80% 最大距离）里随机选取出口，
+/* 从起点 BFS：在路径距离最远的格子（>=85% 最大距离）里随机选取出口，
  * 保证每局出口位置不固定，同时离起点足够远、不至于贴着出生点 */
 function finalize(walls) {
   const dist = Array.from({ length: ROWS }, () => Array(COLS).fill(-1));
@@ -68,11 +68,11 @@ function finalize(walls) {
       q.push([nx, ny]);
     }
   }
-  const threshold = maxDist * 0.8;
+  const threshold = maxDist * 0.85;
   const candidates = [];
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
-      if (dist[y][x] >= threshold && x + y >= 3) candidates.push({ x, y });
+      if (dist[y][x] >= threshold && x + y >= 4) candidates.push({ x, y });
     }
   }
   const exit = candidates.length
