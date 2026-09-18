@@ -301,21 +301,24 @@ const el = {
 };
 
 /* ---------------- 排行榜 ----------------
- * 数据接口集中在 lbLoad / lbStore 两个函数上；
- * 以后要换成共享后端（如 Cloudflare Workers KV），只需改写这两个函数。 */
+ * 远程共享榜（Cloudflare Workers + KV），接口不可达时自动降级为浏览器本地榜。
+ * 数据读写集中在 lbRemoteFetch / lbSubmit 两个函数。 */
 const LB_KEY = 'maze_scores_v1';
 const LB_NAME_KEY = 'maze_last_name';
 const LB_SHOW = 20;
+const LB_REMOTE = 'https://maze-lb.moshaojie.workers.dev/scores';
+/* 演示级防滥用密钥：前端源码公开，只挡随手涂鸦，不挡有心人 */
+const LB_SECRET = '673079890c4a36ac2171b9e3ad150389';
 let lbSubmitted = false;
 
-function lbLoad() {
+function lbLocal() {
   try {
     const list = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
     return Array.isArray(list) ? list : [];
   } catch (e) { return []; }
 }
-function lbStore(list) {
-  try { localStorage.setItem(LB_KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* 存储不可用时忽略 */ }
+function lbCacheSave(list) {
+  try { localStorage.setItem(LB_KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* 忽略 */ }
 }
 /* 同名用户只保留一条记录：新成绩更好则替换，否则保留旧成绩 */
 function lbUpsert(list, rec) {
@@ -328,6 +331,46 @@ function lbUpsert(list, rec) {
   return 'new';
 }
 const lbSorted = (list) => list.slice().sort((a, b) => a.time - b.time || (a.date < b.date ? -1 : 1));
+
+async function lbRemoteFetch() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const r = await fetch(LB_REMOTE, { signal: ctrl.signal, cache: 'no-store' });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const data = await r.json();
+    const list = Array.isArray(data.scores) ? data.scores : [];
+    lbCacheSave(list);
+    return list;
+  } finally { clearTimeout(timer); }
+}
+
+async function lbSubmit(rec) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    let r;
+    try {
+      r = await fetch(LB_REMOTE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: LB_SECRET, record: rec }),
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(timer); }
+    if (!r.ok) throw new Error('http ' + r.status);
+    const data = await r.json();
+    const list = Array.isArray(data.scores) ? data.scores : [];
+    lbCacheSave(list);
+    return { result: data.result || 'new', list };
+  } catch (e) {
+    // 远程不可达：降级为本地榜
+    const list = lbLocal();
+    const result = lbUpsert(list, rec);
+    lbCacheSave(list);
+    return { result, list: lbSorted(list) };
+  }
+}
 
 function renderBoard(list, myName) {
   el.lbList.innerHTML = '';
@@ -363,11 +406,15 @@ function showWin() {
   el.lbNote.textContent = '';
   el.nameInput.value = localStorage.getItem(LB_NAME_KEY) || '';
   el.win.classList.remove('hidden');
-  renderBoard(lbLoad(), el.nameInput.value.trim());
+  renderBoard(lbLocal(), el.nameInput.value.trim());
+  // 先展示本地缓存，再从远程拉取最新榜单刷新
+  lbRemoteFetch().then((list) => {
+    if (state.screen === 'win') renderBoard(list, el.nameInput.value.trim());
+  }).catch(() => { /* 远程不可达时保留本地榜单 */ });
   setTimeout(() => { if (state.screen === 'win' && !lbSubmitted) el.nameInput.focus(); }, 400);
 }
 
-function submitScore() {
+async function submitScore() {
   if (state.screen !== 'win' || lbSubmitted) return;
   const name = el.nameInput.value.trim().slice(0, 12);
   if (!name) {
@@ -375,27 +422,26 @@ function submitScore() {
     el.nameInput.focus();
     return;
   }
+  lbSubmitted = true;
+  el.nameInput.disabled = true;
+  el.btnSubmit.disabled = true;
+  el.lbNote.textContent = '记录中…';
   const rec = {
     name,
-    time: state.endTime - state.startTime,
+    time: Math.round(state.endTime - state.startTime),
     steps: state.steps,
     map: MAP_TYPES[state.mapType].name,
     date: new Date().toISOString().slice(0, 10),
   };
-  const list = lbLoad();
-  const result = lbUpsert(list, rec);
-  lbStore(list);
   try { localStorage.setItem(LB_NAME_KEY, name); } catch (e) { /* 忽略 */ }
-  lbSubmitted = true;
-  el.nameInput.disabled = true;
-  el.btnSubmit.disabled = true;
-  const sorted = lbSorted(lbLoad());
+  const { result, list } = await lbSubmit(rec);
+  const sorted = lbSorted(list);
   const mine = sorted.find((s) => s.name.toLowerCase() === name.toLowerCase());
-  const rank = sorted.indexOf(mine) + 1;
+  const rank = mine ? sorted.indexOf(mine) + 1 : '-';
   el.lbNote.textContent = result === 'kept'
     ? '这次没有超过你的最好成绩，已保留 ' + fmt(mine.time)
     : (result === 'better' ? '刷新了你的最好成绩！' : '已记录！') + ' 当前排名第 ' + rank;
-  renderBoard(lbLoad(), name);
+  renderBoard(sorted, name);
 }
 
 /* ---------------- 角色卡片 ---------------- */
