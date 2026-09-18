@@ -1,0 +1,119 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+  background: #f6e7e4;
+  color: #4a3f55;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+#game { position: fixed; inset: 0; display: block; }
+
+/* ---------- 全屏界面（选择 / 胜利） ---------- */
+.screen {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px;
+  background: rgba(246, 231, 228, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: opacity .6s ease;
+}
+.screen.hidden { opacity: 0; pointer-events: none; }
+
+.title {
+  font-size: min(15vw, 84px);
+  font-weight: 400;
+  letter-spacing: .35em; text-indent: .35em;
+  color: #4a3f55;
+}
+.subtitle { font-size: 14px; letter-spacing: .5em; text-indent: .5em; color: #8b7d90; }
+.hint { margin-top: 6px; font-size: 13px; letter-spacing: .15em; color: #a08fa5; }
+
+/* ---------- 角色卡片 ---------- */
+.cards { display: flex; gap: 26px; margin-top: 32px; flex-wrap: wrap; justify-content: center; }
+.card {
+  width: 190px; padding: 24px 18px 20px;
+  background: rgba(255, 252, 250, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(150, 90, 110, 0.16);
+  text-align: center; cursor: pointer;
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.card:hover { transform: translateY(-8px); box-shadow: 0 22px 44px rgba(150, 90, 110, 0.26); }
+.card canvas { width: 120px; height: 120px; }
+.cname { font-size: 22px; margin-top: 4px; letter-spacing: .2em; }
+.cen { font-size: 11px; letter-spacing: .4em; color: #b3a3b8; margin-top: 3px; }
+.cdesc { font-size: 12px; color: #8b7d90; margin-top: 10px; }
+
+/* ---------- 胜利面板 ---------- */
+.panel {
+  background: rgba(255, 252, 250, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 26px;
+  padding: 44px 64px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(150, 90, 110, 0.22);
+}
+.panel h2 { font-weight: 400; font-size: 30px; letter-spacing: .4em; text-indent: .4em; }
+.win-sub { font-size: 13px; color: #a08fa5; margin-top: 10px; letter-spacing: .2em; }
+.big-time {
+  font-size: 56px; margin: 18px 0 4px;
+  color: #e2795b;
+  font-variant-numeric: tabular-nums; letter-spacing: .04em;
+}
+.steps { font-size: 14px; color: #8b7d90; letter-spacing: .2em; margin-bottom: 28px; }
+.btn-row { display: flex; gap: 16px; justify-content: center; }
+
+button {
+  font-family: inherit; font-size: 15px;
+  letter-spacing: .25em; text-indent: .25em;
+  padding: 12px 30px; border-radius: 999px; border: none; cursor: pointer;
+  background: #e2958d; color: #fff;
+  box-shadow: 0 8px 20px rgba(226, 149, 141, 0.45);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+button:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(226, 149, 141, 0.55); }
+button.ghost {
+  background: transparent; color: #8b7d90;
+  box-shadow: none; border: 1px solid #d9c4cf;
+}
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; top: 18px; left: 18px; z-index: 5; display: flex; gap: 10px; }
+#hud.hidden { display: none; }
+.chip {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255, 252, 250, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 999px; padding: 8px 16px;
+  font-size: 14px; font-variant-numeric: tabular-nums;
+  box-shadow: 0 6px 18px rgba(150, 90, 110, 0.12);
+}
+.chip .label { font-size: 11px; color: #a08fa5; letter-spacing: .2em; }
+#hudCharDot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ---------- 地图版本选择 ---------- */
+.maps { display: flex; gap: 14px; margin-top: 26px; flex-wrap: wrap; justify-content: center; }
+.map-pill {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: rgba(255, 252, 250, 0.7);
+  border: 1px solid rgba(217, 196, 207, 0.9);
+  border-radius: 16px;
+  padding: 10px 22px; cursor: pointer;
+  box-shadow: 0 8px 20px rgba(150, 90, 110, 0.10);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.map-pill:hover { transform: translateY(-4px); box-shadow: 0 14px 28px rgba(150, 90, 110, 0.18); }
+.map-pill.active {
+  background: #e2958d; border-color: #e2958d;
+  box-shadow: 0 10px 24px rgba(226, 149, 141, 0.45);
+}
+.map-pill .mp-name { font-size: 17px; letter-spacing: .25em; text-indent: .25em; color: #4a3f55; }
+.map-pill.active .mp-name { color: #ffffff; }
+.map-pill .mp-desc { font-size: 11px; color: #a08fa5; letter-spacing: .1em; }
+.map-pill.active .mp-desc { color: rgba(255, 255, 255, 0.85); }

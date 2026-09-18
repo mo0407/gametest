@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>迷宫 · 一段静静的路</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- 角色选择 / 开始界面 -->
+  <div id="selectScreen" class="screen">
+    <h1 class="title">迷 宫</h1>
+    <p class="subtitle">一段静静的路 · A QUIET JOURNEY</p>
+    <p class="hint">选择旅人与地图 &nbsp;·&nbsp; 方向键移动 &nbsp;·&nbsp; 走过的地方会保持可见 &nbsp;·&nbsp; 找到金色之门</p>
+    <div id="mapRow" class="maps"></div>
+    <div id="charCards" class="cards"></div>
+  </div>
+
+  <!-- 胜利界面 -->
+  <div id="winScreen" class="screen hidden">
+    <div class="panel">
+      <h2>抵 达</h2>
+      <div class="win-sub">你找到了金色之门</div>
+      <div id="finalTime" class="big-time">00:00.0</div>
+      <div id="finalSteps" class="steps">共走了 0 步</div>
+      <div class="btn-row">
+        <button id="btnRetry">再走一次</button>
+        <button id="btnChangeChar" class="ghost">更换旅人</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 游戏内 HUD -->
+  <div id="hud" class="hidden">
+    <div class="chip"><span class="label">用时</span><span id="hudTime">00:00.0</span></div>
+    <div class="chip"><span class="label">步数</span><span id="hudSteps">0</span></div>
+    <div class="chip"><span id="hudCharDot"></span><span id="hudCharName"></span></div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
