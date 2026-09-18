@@ -55,18 +55,56 @@ body {
   background: rgba(255, 252, 250, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.95);
   border-radius: 26px;
-  padding: 44px 64px;
+  padding: 36px 52px;
   text-align: center;
   box-shadow: 0 24px 60px rgba(150, 90, 110, 0.22);
+  max-height: 94vh;
+  overflow-y: auto;
 }
 .panel h2 { font-weight: 400; font-size: 30px; letter-spacing: .4em; text-indent: .4em; }
 .win-sub { font-size: 13px; color: #a08fa5; margin-top: 10px; letter-spacing: .2em; }
 .big-time {
-  font-size: 56px; margin: 18px 0 4px;
+  font-size: 52px; margin: 14px 0 4px;
   color: #e2795b;
   font-variant-numeric: tabular-nums; letter-spacing: .04em;
 }
-.steps { font-size: 14px; color: #8b7d90; letter-spacing: .2em; margin-bottom: 28px; }
+.steps { font-size: 14px; color: #8b7d90; letter-spacing: .2em; margin-bottom: 20px; }
+
+/* ---------- 成绩录入与排行榜 ---------- */
+.score-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 4px; }
+#nameInput {
+  font-family: inherit; font-size: 15px; letter-spacing: .1em;
+  padding: 11px 16px; border-radius: 999px; width: 190px;
+  border: 1px solid #d9c4cf; background: rgba(255, 255, 255, 0.92);
+  color: #4a3f55; outline: none; text-align: center;
+  transition: border-color .25s ease, box-shadow .25s ease;
+}
+#nameInput:focus { border-color: #e2958d; box-shadow: 0 0 0 3px rgba(226, 149, 141, 0.18); }
+#nameInput:disabled { opacity: .6; }
+#btnSubmit { padding: 11px 22px; font-size: 14px; }
+#btnSubmit:disabled { opacity: .55; cursor: default; transform: none; box-shadow: none; }
+.lb-note { min-height: 18px; font-size: 12px; color: #b3a3b8; letter-spacing: .1em; margin: 2px 0 8px; }
+.lb-box { margin: 0 auto 22px; width: 330px; max-width: 100%; }
+.lb-title { font-size: 13px; letter-spacing: .35em; text-indent: .35em; color: #8b7d90; margin-bottom: 8px; }
+.lb-list { max-height: 172px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 2px 4px 2px 2px; }
+.lb-list::-webkit-scrollbar { width: 4px; }
+.lb-list::-webkit-scrollbar-thumb { background: rgba(179, 163, 184, 0.5); border-radius: 4px; }
+.lb-row {
+  display: grid; grid-template-columns: 26px 1fr 74px 48px;
+  align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px; padding: 6px 12px; font-size: 13px;
+}
+.lb-row.top1 { background: rgba(242, 177, 52, 0.15); }
+.lb-row.top2 { background: rgba(179, 163, 184, 0.18); }
+.lb-row.top3 { background: rgba(226, 149, 141, 0.15); }
+.lb-row.me { outline: 1.5px solid rgba(226, 121, 133, 0.65); }
+.lb-rank { color: #a08fa5; font-variant-numeric: tabular-nums; }
+.lb-row.top1 .lb-rank { color: #d4a017; font-weight: bold; }
+.lb-name { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-time { font-variant-numeric: tabular-nums; color: #e2795b; text-align: left; }
+.lb-map { font-size: 11px; color: #a08fa5; text-align: right; }
+.lb-empty { font-size: 12px; color: #b3a3b8; padding: 10px; letter-spacing: .1em; }
 .btn-row { display: flex; gap: 16px; justify-content: center; }
 
 button {

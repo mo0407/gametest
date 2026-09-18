@@ -255,6 +255,11 @@ let activeKeys = [];
 
 window.addEventListener('keydown', (e) => {
   const key = e.key.toLowerCase();
+  // 输入框聚焦时：回车 = 记录成绩，其余按键交给输入框
+  if (e.target && e.target.tagName === 'INPUT') {
+    if (key === 'enter') submitScore();
+    return;
+  }
   if (KEY_MAP[key] || key === ' ') e.preventDefault();
   if (KEY_MAP[key] && state.screen === 'play') {
     activeKeys = activeKeys.filter((k2) => k2 !== key);
@@ -289,7 +294,109 @@ const el = {
   hudSteps: document.getElementById('hudSteps'),
   hudCharDot: document.getElementById('hudCharDot'),
   hudCharName: document.getElementById('hudCharName'),
+  nameInput: document.getElementById('nameInput'),
+  btnSubmit: document.getElementById('btnSubmit'),
+  lbNote: document.getElementById('lbNote'),
+  lbList: document.getElementById('lbList'),
 };
+
+/* ---------------- 排行榜 ----------------
+ * 数据接口集中在 lbLoad / lbStore 两个函数上；
+ * 以后要换成共享后端（如 Cloudflare Workers KV），只需改写这两个函数。 */
+const LB_KEY = 'maze_scores_v1';
+const LB_NAME_KEY = 'maze_last_name';
+const LB_SHOW = 20;
+let lbSubmitted = false;
+
+function lbLoad() {
+  try {
+    const list = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
+    return Array.isArray(list) ? list : [];
+  } catch (e) { return []; }
+}
+function lbStore(list) {
+  try { localStorage.setItem(LB_KEY, JSON.stringify(list.slice(0, 100))); } catch (e) { /* 存储不可用时忽略 */ }
+}
+/* 同名用户只保留一条记录：新成绩更好则替换，否则保留旧成绩 */
+function lbUpsert(list, rec) {
+  const i = list.findIndex((s) => s.name.toLowerCase() === rec.name.toLowerCase());
+  if (i >= 0) {
+    if (rec.time < list[i].time) { list[i] = rec; return 'better'; }
+    return 'kept';
+  }
+  list.push(rec);
+  return 'new';
+}
+const lbSorted = (list) => list.slice().sort((a, b) => a.time - b.time || (a.date < b.date ? -1 : 1));
+
+function renderBoard(list, myName) {
+  el.lbList.innerHTML = '';
+  const sorted = lbSorted(list).slice(0, LB_SHOW);
+  if (!sorted.length) {
+    const empty = document.createElement('div');
+    empty.className = 'lb-empty';
+    empty.textContent = '暂无记录，来当第一名吧';
+    el.lbList.appendChild(empty);
+    return;
+  }
+  sorted.forEach((s, idx) => {
+    const row = document.createElement('div');
+    row.className = 'lb-row'
+      + (idx < 3 ? ' top' + (idx + 1) : '')
+      + (myName && s.name.toLowerCase() === myName.toLowerCase() ? ' me' : '');
+    row.title = (s.date || '') + ' · ' + (s.steps || 0) + ' 步';
+    const rank = document.createElement('span'); rank.className = 'lb-rank'; rank.textContent = idx + 1;
+    const name = document.createElement('span'); name.className = 'lb-name'; name.textContent = s.name;
+    const time = document.createElement('span'); time.className = 'lb-time'; time.textContent = fmt(s.time);
+    const map = document.createElement('span'); map.className = 'lb-map'; map.textContent = s.map || '';
+    row.append(rank, name, time, map);
+    el.lbList.appendChild(row);
+  });
+}
+
+function showWin() {
+  el.finalTime.textContent = fmt(state.endTime - state.startTime);
+  el.finalSteps.textContent = '共走了 ' + state.steps + ' 步';
+  lbSubmitted = false;
+  el.nameInput.disabled = false;
+  el.btnSubmit.disabled = false;
+  el.lbNote.textContent = '';
+  el.nameInput.value = localStorage.getItem(LB_NAME_KEY) || '';
+  el.win.classList.remove('hidden');
+  renderBoard(lbLoad(), el.nameInput.value.trim());
+  setTimeout(() => { if (state.screen === 'win' && !lbSubmitted) el.nameInput.focus(); }, 400);
+}
+
+function submitScore() {
+  if (state.screen !== 'win' || lbSubmitted) return;
+  const name = el.nameInput.value.trim().slice(0, 12);
+  if (!name) {
+    el.lbNote.textContent = '先输入名字再记录哦';
+    el.nameInput.focus();
+    return;
+  }
+  const rec = {
+    name,
+    time: state.endTime - state.startTime,
+    steps: state.steps,
+    map: MAP_TYPES[state.mapType].name,
+    date: new Date().toISOString().slice(0, 10),
+  };
+  const list = lbLoad();
+  const result = lbUpsert(list, rec);
+  lbStore(list);
+  try { localStorage.setItem(LB_NAME_KEY, name); } catch (e) { /* 忽略 */ }
+  lbSubmitted = true;
+  el.nameInput.disabled = true;
+  el.btnSubmit.disabled = true;
+  const sorted = lbSorted(lbLoad());
+  const mine = sorted.find((s) => s.name.toLowerCase() === name.toLowerCase());
+  const rank = sorted.indexOf(mine) + 1;
+  el.lbNote.textContent = result === 'kept'
+    ? '这次没有超过你的最好成绩，已保留 ' + fmt(mine.time)
+    : (result === 'better' ? '刷新了你的最好成绩！' : '已记录！') + ' 当前排名第 ' + rank;
+  renderBoard(lbLoad(), name);
+}
 
 /* ---------------- 角色卡片 ---------------- */
 function buildCards() {
@@ -452,11 +559,7 @@ function onWin(now) {
   state.endTime = now;
   activeKeys = [];
   winChime();
-  setTimeout(() => {
-    el.finalTime.textContent = fmt(state.endTime - state.startTime);
-    el.finalSteps.textContent = '共走了 ' + state.steps + ' 步';
-    el.win.classList.remove('hidden');
-  }, 550);
+  setTimeout(showWin, 550);
 }
 
 function backToSelect() {
@@ -468,6 +571,7 @@ function backToSelect() {
 
 el.btnRetry.addEventListener('click', () => { ensureAudio(); startGame(); });
 el.btnChange.addEventListener('click', backToSelect);
+el.btnSubmit.addEventListener('click', submitScore);
 
 /* ---------------- 更新逻辑 ---------------- */
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
